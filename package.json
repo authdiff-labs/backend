@@ -1,1 +1,19 @@
-{"name":"@authdiff/backend","version":"0.2.0","private":true,"type":"module","scripts":{"start":"node server.mjs","test":"node --test","pilot":"node testnet-pilot.mjs"},"dependencies":{"@stellar/stellar-sdk":"17.4.0"},"license":"MIT"}
+{
+  "name": "@authdiff/backend",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Local HTTP comparison API and review workbench server",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test",
+    "pilot": "node testnet-pilot.mjs"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "17.4.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

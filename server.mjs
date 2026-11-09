@@ -1,43 +1,8 @@
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { decodeAuthorization } from './decode.mjs';
-import { compareAuthorization } from '../auth-tree-core/index.mjs';
+import { createReviewServer } from './app.mjs';
 
-const assets = {
-  '/': ['../frontend/index.html', 'text/html; charset=utf-8'],
-  '/testnet-example': ['../fixtures/testnet-approve.json', 'application/json'],
-  '/example': ['../fixtures/amount-change.json', 'application/json']
-};
-const server = createServer(async (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  try {
-    if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
-      const [path, type] = assets[req.url];
-      const body = await readFile(new URL(path, import.meta.url));
-      res.writeHead(200, { 'Content-Type': type }).end(body);
-      return;
-    }
-    if (req.method !== 'POST' || !['/compare', '/compare-xdr'].includes(req.url)) {
-      res.writeHead(404).end();
-      return;
-    }
-    const chunks = [];
-    let bytes = 0;
-    for await (const chunk of req) {
-      bytes += chunk.length;
-      if (bytes > 262144) {
-        res.writeHead(413).end();
-        return;
-      }
-      chunks.push(chunk);
-    }
-    const { before, after } = JSON.parse(Buffer.concat(chunks));
-    const decode = req.url === '/compare-xdr' ? decodeAuthorization : value => value;
-    const changes = compareAuthorization(decode(before), decode(after));
-    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ changes }));
-  } catch {
-    res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Invalid authorization comparison input' }));
-  }
+const host = process.env.AUTHDIFF_HOST || '127.0.0.1';
+const port = Number(process.env.AUTHDIFF_PORT || 4782);
+
+createReviewServer().listen(port, host, () => {
+  console.log('AuthDiff workbench listening on http://' + host + ':' + port);
 });
-server.listen(Number(process.env.AUTHDIFF_PORT || 4782), '127.0.0.1');
