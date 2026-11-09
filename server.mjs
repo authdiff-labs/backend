@@ -1,9 +1,11 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { decodeAuthorization } from './decode.mjs';
 import { compareAuthorization } from '../auth-tree-core/index.mjs';
 
 const assets = {
   '/': ['../frontend/index.html', 'text/html; charset=utf-8'],
+  '/testnet-example': ['../fixtures/testnet-approve.json', 'application/json'],
   '/example': ['../fixtures/amount-change.json', 'application/json']
 };
 const server = createServer(async (req, res) => {
@@ -16,7 +18,7 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': type }).end(body);
       return;
     }
-    if (req.method !== 'POST' || req.url !== '/compare') {
+    if (req.method !== 'POST' || !['/compare', '/compare-xdr'].includes(req.url)) {
       res.writeHead(404).end();
       return;
     }
@@ -31,7 +33,8 @@ const server = createServer(async (req, res) => {
       chunks.push(chunk);
     }
     const { before, after } = JSON.parse(Buffer.concat(chunks));
-    const changes = compareAuthorization(before, after);
+    const decode = req.url === '/compare-xdr' ? decodeAuthorization : value => value;
+    const changes = compareAuthorization(decode(before), decode(after));
     res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ changes }));
   } catch {
     res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Invalid authorization comparison input' }));
